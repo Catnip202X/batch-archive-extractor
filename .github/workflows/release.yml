@@ -1,0 +1,135 @@
+name: Build release binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, for example v0.1.0"
+        required: true
+        default: "v0.1.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: linux-x64
+            runner: ubuntu-24.04
+            python-arch: x64
+            executable: BatchArchiveExtractor
+            archive: tar
+          - artifact: linux-arm64
+            runner: ubuntu-24.04-arm
+            python-arch: arm64
+            executable: BatchArchiveExtractor
+            archive: tar
+          - artifact: windows-x64
+            runner: windows-latest
+            python-arch: x64
+            executable: BatchArchiveExtractor.exe
+            archive: zip
+          - artifact: windows-arm64
+            runner: windows-11-arm
+            python-arch: arm64
+            executable: BatchArchiveExtractor.exe
+            archive: zip
+          - artifact: macos-x64
+            runner: macos-13
+            python-arch: x64
+            executable: BatchArchiveExtractor
+            archive: tar
+          - artifact: macos-arm64
+            runner: macos-14
+            python-arch: arm64
+            executable: BatchArchiveExtractor
+            archive: tar
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.python-arch }}
+
+      - name: Install Linux GUI libraries
+        if: startsWith(matrix.artifact, 'linux-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Build one-file executable
+        run: >
+          python -m PyInstaller
+          --onefile
+          --windowed
+          --name BatchArchiveExtractor
+          batch_extract_gui.py
+
+      - name: Package zip artifact
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item "dist/${{ matrix.executable }}" "release/${{ matrix.executable }}"
+          Compress-Archive -Path "release/${{ matrix.executable }}" -DestinationPath "BatchArchiveExtractor-${{ matrix.artifact }}.zip" -Force
+
+      - name: Package tar artifact
+        if: matrix.archive == 'tar'
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "dist/${{ matrix.executable }}" "release/${{ matrix.executable }}"
+          chmod +x "release/${{ matrix.executable }}"
+          tar -czf "BatchArchiveExtractor-${{ matrix.artifact }}.tar.gz" -C release "${{ matrix.executable }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BatchArchiveExtractor-${{ matrix.artifact }}
+          path: BatchArchiveExtractor-${{ matrix.artifact }}.*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Choose release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Batch Archive Extractor ${{ steps.tag.outputs.tag }}
+          files: release-assets/*
+          generate_release_notes: true

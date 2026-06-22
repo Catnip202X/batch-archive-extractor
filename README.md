@@ -69,6 +69,21 @@ dist\BatchArchiveExtractor.exe
 Drag matching archives onto `BatchArchiveExtractor.exe` to extract them in
 place. The app will ask for filters and password first.
 
+## Release Builds
+
+Tagged releases are built by GitHub Actions for:
+
+- Linux x64 and ARM64
+- Windows x64 and ARM64
+- macOS x64 and ARM64
+
+Create and push a tag to publish a release:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## Safety Notes
 
 - Non-matching filenames are skipped.
