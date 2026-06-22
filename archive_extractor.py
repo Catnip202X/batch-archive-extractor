@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract password-protected archives selected by filename filters."""
+"""Extract archives selected by filename filters."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def parse_filter(value: str) -> list[str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extract password-protected archives whose filenames contain chosen text."
+        description="Extract archives whose filenames contain chosen text."
     )
     parser.add_argument("source", nargs="?", default=".", type=Path)
     parser.add_argument(
@@ -32,8 +32,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-p",
         "--password",
-        required=True,
-        help="Password to use for every matching archive.",
+        default="",
+        help="Optional password to use for every matching archive.",
     )
     parser.add_argument("-o", "--output-dir", default=None, type=Path)
     parser.add_argument("-r", "--recursive", action="store_true")
@@ -117,25 +117,33 @@ def extraction_command(
 
     if executable in {"7z", "7zz", "7za"}:
         overwrite_mode = "-aoa" if overwrite else "-aos"
-        return [
+        command = [
             extractor,
             "x",
             str(archive),
-            f"-p{password}",
             "-y",
             overwrite_mode,
             f"-o{destination}",
         ]
+        if password:
+            command.insert(3, f"-p{password}")
+        return command
 
     if executable == "unar":
-        command = [extractor, "-password", password, "-output-directory", str(destination)]
+        command = [extractor, "-output-directory", str(destination)]
+        if password:
+            command[1:1] = ["-password", password]
         command.append("-force-overwrite" if overwrite else "-skip")
         command.append(str(archive))
         return command
 
     if executable == "unrar":
         overwrite_mode = "-o+" if overwrite else "-o-"
-        return [extractor, "x", overwrite_mode, f"-p{password}", str(archive), str(destination)]
+        command = [extractor, "x", overwrite_mode]
+        if password:
+            command.append(f"-p{password}")
+        command.extend([str(archive), str(destination)])
+        return command
 
     raise RuntimeError(f"Unsupported extractor: {extractor}")
 

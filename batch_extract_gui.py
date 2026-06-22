@@ -34,11 +34,12 @@ def extract_and_delete(
         if log:
             log(message)
 
-    if not password:
-        raise ValueError("Enter a password before extracting.")
-
     extractor = find_extractor()
     write(f"Using extractor: {extractor}")
+    if password:
+        write("Using the provided archive password.")
+    else:
+        write("No password provided; extracting as a standard archive.")
 
     for archive in archives:
         archive = archive.expanduser().resolve()
@@ -115,7 +116,7 @@ class DropSettingsDialog:
         self.filter_entry = tk.Entry(frame)
         self.filter_entry.pack(fill=tk.X, pady=(4, 12))
 
-        tk.Label(frame, text="Archive password:").pack(anchor="w")
+        tk.Label(frame, text="Archive password, optional:").pack(anchor="w")
         self.password_entry = tk.Entry(frame, show="*")
         self.password_entry.pack(fill=tk.X, pady=(4, 12))
 
@@ -124,14 +125,11 @@ class DropSettingsDialog:
         tk.Button(buttons, text="Extract", command=self.accept).pack(side=tk.RIGHT)
         tk.Button(buttons, text="Cancel", command=self.window.destroy).pack(side=tk.RIGHT, padx=(0, 8))
 
-        self.password_entry.focus_set()
+        self.filter_entry.focus_set()
 
     def accept(self) -> None:
         self.filters = parse_filter(self.filter_entry.get())
         self.password = self.password_entry.get()
-        if not self.password:
-            messagebox.showerror(APP_TITLE, "Enter an archive password.")
-            return
         self.confirmed = True
         self.window.destroy()
 
@@ -148,7 +146,7 @@ class ExtractorApp:
 
         title = tk.Label(
             frame,
-            text="Select archives, enter filename filters, and reuse one password.",
+            text="Select archives, enter optional filename filters, and optionally reuse one password.",
             font=("Segoe UI", 12, "bold"),
             anchor="w",
         )
@@ -161,7 +159,7 @@ class ExtractorApp:
         self.filter_entry = tk.Entry(settings)
         self.filter_entry.grid(row=0, column=1, sticky="ew", padx=(10, 0))
 
-        tk.Label(settings, text="Password:").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        tk.Label(settings, text="Password, optional:").grid(row=1, column=0, sticky="w", pady=(8, 0))
         self.password_entry = tk.Entry(settings, show="*")
         self.password_entry.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=(8, 0))
         settings.columnconfigure(1, weight=1)

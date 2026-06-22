@@ -1,12 +1,12 @@
 # Batch Archive Extractor
 
-A small Windows-friendly extractor for password-protected `.rar`, `.zip`, and
-`.7z` archives.
+A small Windows-friendly extractor for `.rar`, `.zip`, and `.7z` archives,
+including archives that do not require a password.
 
 The user enters:
 
 - one or more pieces of filename text to target specific archives
-- one shared password to try for every matching archive
+- one shared password to try for every matching archive, if needed
 
 Matching archives are extracted into their current directory. The original
 archive is deleted only after extraction succeeds.
@@ -38,13 +38,19 @@ You can select archives from the GUI, or pass archive paths directly:
 python batch_extract_gui.py .\example_001.rar .\example_002.rar
 ```
 
-When files are passed directly, the app prompts for filters and password before
-extracting.
+When files are passed directly, the app prompts for filters and an optional
+password before extracting.
 
 ## Command-Line Batch Mode
 
 ```powershell
 python archive_extractor.py . -f example -p "shared-password" --delete-after
+```
+
+Leave `-p/--password` out for archives that do not require a password:
+
+```powershell
+python archive_extractor.py . -f example --delete-after
 ```
 
 Use multiple filters when filenames must contain more than one piece of text:
@@ -67,7 +73,7 @@ dist\BatchArchiveExtractor.exe
 ```
 
 Drag matching archives onto `BatchArchiveExtractor.exe` to extract them in
-place. The app will ask for filters and password first.
+place. The app will ask for filters and an optional password first.
 
 ## Release Builds
 
@@ -80,8 +86,8 @@ Tagged releases are built by GitHub Actions for:
 Create and push a tag to publish a release:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## Safety Notes
