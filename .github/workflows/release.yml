@@ -43,7 +43,7 @@ jobs:
             executable: BatchArchiveExtractor.exe
             archive: zip
           - artifact: macos-x64
-            runner: macos-13
+            runner: macos-15-intel
             python-arch: x64
             executable: BatchArchiveExtractor
             archive: tar
